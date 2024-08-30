@@ -94,7 +94,7 @@ def insert_csv_to_db(csv_file_path, table_name, db):
     """
     try:
         # Зчитуємо дані з CSV-файлу в DataFrame
-        df = pd.read_csv(csv_file_path)
+        df = pd.read_csv(csv_file_path, sep=';')
 
         # Додаємо дані до таблиці в базі даних
         df.to_sql(table_name, db.engine, if_exists='append', index=False)

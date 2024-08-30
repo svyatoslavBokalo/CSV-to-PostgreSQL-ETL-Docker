@@ -34,14 +34,14 @@ class PostgresDB:
         Виконує SQL-запит до бази даних.
 
         :param query: SQL-запит у вигляді рядка
-        :return: Результати запиту, якщо вони є
+        :return: Результати запиту у вигляді списку рядків або None, якщо запит не повертає результат
         """
         if self.session:
             try:
                 result = self.session.execute(query)
                 self.session.commit()
                 print("Запит успішно виконано.")
-                return result.fetchall()
+                return result.fetchall()  # Повертає всі результати у вигляді списку рядків
             except Exception as e:
                 print(f"Помилка під час виконання запиту: {e}")
                 self.session.rollback()
