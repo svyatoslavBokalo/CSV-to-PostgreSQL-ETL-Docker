@@ -1,6 +1,5 @@
 import data_processor_PANDAS
 import DbContext
-import Data_processor_PySpark
 import queries
 
 def print_hi(name):
