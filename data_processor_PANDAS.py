@@ -1,6 +1,7 @@
 import pandas as pd
 import re
 from email_validator import validate_email, EmailNotValidError
+from sqlalchemy import create_engine
 
 
 def read_csv_file(file_path):
@@ -102,4 +103,9 @@ def insert_csv_to_db(csv_file_path, table_name, db):
         print(f"Дані успішно додані до таблиці '{table_name}' в базі даних.")
     except Exception as e:
         print(f"Помилка під час додавання даних до бази даних: {e}")
+
+
+
+
+
 

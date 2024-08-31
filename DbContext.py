@@ -50,6 +50,48 @@ class PostgresDB:
             print("Сесія не встановлена. Підключіться до бази даних перед виконанням запиту.")
             return None
 
+    def insert_user(self, user_id, name, email, signup_date, domain):
+        """Вставляє дані користувача у таблицю 'users'."""
+        if self.session is not None:
+            try:
+                query = """
+                INSERT INTO users (user_id, name, email, signup_date, domain)
+                VALUES (:user_id, :name, :email, :signup_date, :domain);
+                """
+                self.session.execute(query, {
+                    'user_id': user_id,
+                    'name': name,
+                    'email': email,
+                    'signup_date': signup_date,
+                    'domain': domain
+                })
+                self.session.commit()
+            except Exception as e:
+                print(f"Помилка під час вставки даних: {e}")
+                self.session.rollback()
+        else:
+            print("Сесія не встановлена. Підключіться до бази даних перед вставкою даних.")
+
+    def insert_all_users_from_dataframe(df, db):
+        """
+        Вставляє всі дані з DataFrame у таблицю бази даних, використовуючи метод insert_user.
+
+        :param df: DataFrame з даними
+        :param db: Об'єкт класу PostgresDB, підключений до бази даних
+        """
+        try:
+            for index, row in df.iterrows():
+                db.insert_user(
+                    user_id=row['user_id'],
+                    name=row['name'],
+                    email=row['email'],
+                    signup_date=row['signup_date'],
+                    domain=row['domain']
+                )
+            print("Всі дані з DataFrame успішно додані до бази даних.")
+        except Exception as e:
+            print(f"Помилка під час додавання даних до бази даних: {e}")
+
     def close(self):
         """Закриває підключення до бази даних."""
         if self.session:

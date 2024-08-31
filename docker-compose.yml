@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres_etl
+    environment:
+      POSTGRES_DB: ETL
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 111111111
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  etl:
+    build: .
+    container_name: etl_app
+    command: python main.py
+    environment:
+      DB_NAME: ETL
+      DB_USER: postgres
+      DB_PASSWORD: 111111111
+      DB_HOST: postgres
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
