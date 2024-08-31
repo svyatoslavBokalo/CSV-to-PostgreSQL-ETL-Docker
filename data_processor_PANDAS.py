@@ -1,7 +1,6 @@
 import pandas as pd
 import re
 from email_validator import validate_email, EmailNotValidError
-from sqlalchemy import create_engine
 
 
 def read_csv_file(file_path):

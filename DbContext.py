@@ -1,9 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+import os
 
 
 class PostgresDB:
-    def __init__(self, dbname, user, password, host='localhost', port='5432'):
+    def __init__(self, dbname, user, password,  host=os.getenv('DB_HOST', 'localhost'), port='5432'):
         """
         Ініціалізує об'єкт для підключення до бази даних PostgreSQL.
 
@@ -54,10 +56,15 @@ class PostgresDB:
         """Вставляє дані користувача у таблицю 'users'."""
         if self.session is not None:
             try:
-                query = """
-                INSERT INTO users (user_id, name, email, signup_date, domain)
-                VALUES (:user_id, :name, :email, :signup_date, :domain);
-                """
+                query = text("""
+                        INSERT INTO users (user_id, name, email, signup_date, domain)
+                        VALUES (:user_id, :name, :email, :signup_date, :domain)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            name = EXCLUDED.name,
+                            email = EXCLUDED.email,
+                            signup_date = EXCLUDED.signup_date,
+                            domain = EXCLUDED.domain;
+                    """)
                 self.session.execute(query, {
                     'user_id': user_id,
                     'name': name,
@@ -91,6 +98,19 @@ class PostgresDB:
             print("Всі дані з DataFrame успішно додані до бази даних.")
         except Exception as e:
             print(f"Помилка під час додавання даних до бази даних: {e}")
+
+    def create_users_table(self):
+        create_table_query = text("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id UUID PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                signup_date DATE NOT NULL,
+                domain VARCHAR(255) NOT NULL
+            );
+        """)
+        self.session.execute(create_table_query)
+        self.session.commit()
 
     def close(self):
         """Закриває підключення до бази даних."""
