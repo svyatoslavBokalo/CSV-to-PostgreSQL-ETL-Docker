@@ -4,14 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2a8104d8-c9fe-458d-8771-98ce045d1aa3" name="Changes" comment="all worked">
+    <list default="true" id="2a8104d8-c9fe-458d-8771-98ce045d1aa3" name="Changes" comment="some change, add txt file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DbContext.py" beforeDir="false" afterPath="$PROJECT_DIR$/DbContext.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DbContext.py" beforeDir="false" afterPath="$PROJECT_DIR$/db_context.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data_processor_PANDAS.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_processor_PANDAS.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/dockerfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/queries.py" beforeDir="false" afterPath="$PROJECT_DIR$/queries.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,7 +53,7 @@
   "keyToString": {
     "Python.Data_processor_PySpark.executor": "Run",
     "Python.data_processor_PANDAS.executor": "Debug",
-    "Python.main.executor": "Run",
+    "Python.main.executor": "Debug",
     "Python.protocol.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -104,7 +102,23 @@
       <option name="project" value="LOCAL" />
       <updated>1725062739212</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="add docker">
+      <option name="closed" value="true" />
+      <created>1725089832841</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1725089832841</updated>
+    </task>
+    <task id="LOCAL-00005" summary="some change, add txt file">
+      <option name="closed" value="true" />
+      <created>1725090127145</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1725090127145</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -185,15 +199,17 @@
     <MESSAGE value="some change" />
     <MESSAGE value="some change in main" />
     <MESSAGE value="all worked" />
-    <option name="LAST_COMMIT_MESSAGE" value="all worked" />
+    <MESSAGE value="add docker" />
+    <MESSAGE value="some change, add txt file" />
+    <option name="LAST_COMMIT_MESSAGE" value="some change, add txt file" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/data_processor_PANDAS.py</url>
-          <line>101</line>
-          <option name="timeStamp" value="15" />
+          <url>file://$PROJECT_DIR$/main.py</url>
+          <line>31</line>
+          <option name="timeStamp" value="17" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

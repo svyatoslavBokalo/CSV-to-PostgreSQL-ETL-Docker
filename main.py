@@ -1,54 +1,52 @@
+import logging
 import data_processor_PANDAS
-import DbContext
+import db_context
 import queries
+
 from sqlalchemy import text
 
-def print_hi(name):
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def main():
+    """
+    Main function to process data and interact with the database.
+    """
     input_path = 'csvFiles/generated_users.csv'
     output_path = 'csvFiles/processed_users.csv'
 
+    # Read and process data
     df = data_processor_PANDAS.read_csv_file(input_path)
     df = data_processor_PANDAS.process_data(df)
     data_processor_PANDAS.save_to_csv(df, output_path)
 
-    # Ініціалізуємо об'єкт бази даних
-    db = DbContext.PostgresDB(dbname='ETL', user='postgres', password='123456789')
+    # Initialize the database object
+    db = db_context.PostgresDB(dbname='ETL', user='postgres', password='123456789')
     db.connect()
 
-    # Вказуємо шлях до CSV-файлу та назву таблиці в базі даних
-    #csv_file_path = 'csvFiles/processed_users.csv'
-    #table_name = 'users'
+    # Create table
+    db_context.PostgresDB.create_users_table()
 
-    # Викликаємо функцію для додавання даних до бази даних
-    #data_processor_PANDAS.insert_csv_to_db(csv_file_path, table_name, db)
-    db.create_users_table()
-    DbContext.PostgresDB.insert_all_users_from_dataframe(df, db)
-    #data_processor_PANDAS.insert_dataframe_to_db_optimized(df, table_name, db)
+    # Insert data into the database
+    db_context.PostgresDB.insert_all_users_from_dataframe(df, db)
 
-    print("викликаємо 1 запит: ")
-    print(db.execute_query(queries.query1))
+    # Execute queries
+    for i, query in enumerate([queries.query1, queries.query2, queries.query3, queries.query4, queries.query5], start=1):
+        logger.info(f"Executing query {i}:")
+        result = db.execute_query(query)
+        if result is not None:
+            logger.info(f"Result of query {i}: {result}")
+        else:
+            logger.info(f"No results returned for query {i}.")
 
-    print("викликаємо 2 запит: ")
-    print(db.execute_query(queries.query2))
+    logger.info("An exception may occur here because the delete query does not return data. To verify, do the following:")
+    logger.info("Retrieving data after deleting users except those with certain domains:")
+    remaining_users = db.execute_query(text("SELECT * FROM users"))
+    logger.info(f"Remaining users: {remaining_users}")
 
-    print("викликаємо 3 запит: ")
-    print(db.execute_query(queries.query3))
-
-    print("викликаємо 4 запит: ")
-    print(db.execute_query(queries.query4))
-
-    print("викликаємо 5 запит: ")
-    print(db.execute_query(queries.query5))
-    print("тут виникає виняток, який обробляє і каже, що саме цей запит (delete) немає на виході даних тому перевіряєм, ось так:")
-    print("отримуємо дані, після очищення всіх користувачів окрім тих, що мають певні домени",db.execute_query(text("SELECT * FROM users")))
-
-    # Закриваємо підключення до бази даних
+    # Close the database connection
     db.close()
 
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    main()

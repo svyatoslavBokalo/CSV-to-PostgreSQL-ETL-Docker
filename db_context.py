@@ -1,59 +1,81 @@
+import logging
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
-import os
+
+# Logging Configuration
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Create handler and formatter
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 class PostgresDB:
-    def __init__(self, dbname, user, password,  host=os.getenv('DB_HOST', 'localhost'), port='5432'):
+    """
+        Class for connecting and interacting with the PostgreSQL database.
+    """
+    def __init__(
+        self,
+        dbname: str,
+        user: str,
+        password: str,
+        host: str = os.getenv('DB_HOST', 'localhost'),
+        port: str = '5432'
+    ):
         """
-        Ініціалізує об'єкт для підключення до бази даних PostgreSQL.
+        Initializes the object to connect to the PostgreSQL database.
 
-        :param dbname: Ім'я бази даних
-        :param user: Ім'я користувача для підключення
-        :param password: Пароль користувача
-        :param host: Хост бази даних (за замовчуванням 'localhost')
-        :param port: Порт бази даних (за замовчуванням '5432')
+        :param dbname: database name
+        :param user: User name for connection
+        :param password: user password
+        :param host: Database host (default is' localhost ')
+        :param port: Database port (default '5432')
         """
         self.connection_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
         self.engine = None
         self.session = None
 
     def connect(self):
-        """Створює підключення до бази даних і встановлює сесію."""
+        """Creates a database connection and establishes a session."""
         try:
             self.engine = create_engine(self.connection_string)
             Session = sessionmaker(bind=self.engine)
             self.session = Session()
-            print("Підключення до бази даних успішно створено.")
+            logger.info("Database connection created successfully.")
         except Exception as e:
-            print(f"Помилка підключення до бази даних: {e}")
+            logger.error(f"Error connecting to database: {e}")
             self.engine = None
             self.session = None
 
-    def execute_query(self, query):
+    def execute_query(self, query: str):
         """
-        Виконує SQL-запит до бази даних.
+        Performs an SQL query on the database.
 
-        :param query: SQL-запит у вигляді рядка
-        :return: Результати запиту у вигляді списку рядків або None, якщо запит не повертає результат
+        :param query: SQL query as string
+        :return: Query results as a list of rows or None if the query does not return a result
         """
         if self.session:
             try:
                 result = self.session.execute(query)
                 self.session.commit()
-                print("Запит успішно виконано.")
-                return result.fetchall()  # Повертає всі результати у вигляді списку рядків
+                logger.info("The request completed successfully.")
+                return result.fetchall()  # Returns all results as a list of strings
             except Exception as e:
-                print(f"Помилка під час виконання запиту: {e}")
+                logger.error(f"Error executing query: {e}")
                 self.session.rollback()
                 return None
         else:
-            print("Сесія не встановлена. Підключіться до бази даних перед виконанням запиту.")
+            logger.warning("Session not set. Connect to the database before running the query.")
             return None
 
     def insert_user(self, user_id, name, email, signup_date, domain):
-        """Вставляє дані користувача у таблицю 'users'."""
+        """Inserts user data into the 'users' table."""
         if self.session is not None:
             try:
                 query = text("""
@@ -74,17 +96,17 @@ class PostgresDB:
                 })
                 self.session.commit()
             except Exception as e:
-                print(f"Помилка під час вставки даних: {e}")
+                logger.error(f"Error inserting data: {e}")
                 self.session.rollback()
         else:
-            print("Сесія не встановлена. Підключіться до бази даних перед вставкою даних.")
+            logger.warning("Session not set. Connect to the database before inserting data.")
 
     def insert_all_users_from_dataframe(df, db):
         """
-        Вставляє всі дані з DataFrame у таблицю бази даних, використовуючи метод insert_user.
+        Inserts all data from the DataFrame into the database table using the insert_user method.
 
-        :param df: DataFrame з даними
-        :param db: Об'єкт класу PostgresDB, підключений до бази даних
+        :param df: DataFrame with data
+        :param db: PostgresDB class object connected to the database
         """
         try:
             for index, row in df.iterrows():
@@ -95,11 +117,12 @@ class PostgresDB:
                     signup_date=row['signup_date'],
                     domain=row['domain']
                 )
-            print("Всі дані з DataFrame успішно додані до бази даних.")
+            logger.info("All data from the DataFrame was successfully added to the database.")
         except Exception as e:
-            print(f"Помилка під час додавання даних до бази даних: {e}")
+            logger.error(f"Error adding data to database: {e}")
 
     def create_users_table(self):
+        """Creates a'Users' table in the database if it does not exist."""
         create_table_query = text("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id UUID PRIMARY KEY,
@@ -113,9 +136,9 @@ class PostgresDB:
         self.session.commit()
 
     def close(self):
-        """Закриває підключення до бази даних."""
+        """Closes the database connection."""
         if self.session:
             self.session.close()
         if self.engine:
             self.engine.dispose()
-        print("Підключення до бази даних закрито.")
+        logger.info("Database connection closed.")

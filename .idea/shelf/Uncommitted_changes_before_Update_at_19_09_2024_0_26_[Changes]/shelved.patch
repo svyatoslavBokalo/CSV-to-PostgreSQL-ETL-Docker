@@ -1,0 +1,558 @@
+Index: DbContext.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/DbContext.py b/db_context.py
+rename from DbContext.py
+rename to db_context.py
+--- a/DbContext.py	(revision b7a47eabd627d9fdc7bad8b4ffc93e39bdfa39d7)
++++ b/db_context.py	(date 1726658949421)
+@@ -1,59 +1,81 @@
++import logging
++import os
++
+ from sqlalchemy import create_engine
+ from sqlalchemy.orm import sessionmaker
+ from sqlalchemy import text
+-import os
++
++# Logging Configuration
++logger = logging.getLogger(__name__)
++logger.setLevel(logging.INFO)
++
++# Create handler and formatter
++handler = logging.StreamHandler()
++formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
++handler.setFormatter(formatter)
++logger.addHandler(handler)
+ 
+ 
+ class PostgresDB:
+-    def __init__(self, dbname, user, password,  host=os.getenv('DB_HOST', 'localhost'), port='5432'):
++    """
++        Class for connecting and interacting with the PostgreSQL database.
++    """
++    def __init__(
++        self,
++        dbname: str,
++        user: str,
++        password: str,
++        host: str = os.getenv('DB_HOST', 'localhost'),
++        port: str = '5432'
++    ):
+         """
+-        Ініціалізує об'єкт для підключення до бази даних PostgreSQL.
++        Initializes the object to connect to the PostgreSQL database.
+ 
+-        :param dbname: Ім'я бази даних
+-        :param user: Ім'я користувача для підключення
+-        :param password: Пароль користувача
+-        :param host: Хост бази даних (за замовчуванням 'localhost')
+-        :param port: Порт бази даних (за замовчуванням '5432')
++        :param dbname: database name
++        :param user: User name for connection
++        :param password: user password
++        :param host: Database host (default is' localhost ')
++        :param port: Database port (default '5432')
+         """
+         self.connection_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+         self.engine = None
+         self.session = None
+ 
+     def connect(self):
+-        """Створює підключення до бази даних і встановлює сесію."""
++        """Creates a database connection and establishes a session."""
+         try:
+             self.engine = create_engine(self.connection_string)
+             Session = sessionmaker(bind=self.engine)
+             self.session = Session()
+-            print("Підключення до бази даних успішно створено.")
++            logger.info("Database connection created successfully.")
+         except Exception as e:
+-            print(f"Помилка підключення до бази даних: {e}")
++            logger.error(f"Error connecting to database: {e}")
+             self.engine = None
+             self.session = None
+ 
+-    def execute_query(self, query):
++    def execute_query(self, query: str):
+         """
+-        Виконує SQL-запит до бази даних.
++        Performs an SQL query on the database.
+ 
+-        :param query: SQL-запит у вигляді рядка
+-        :return: Результати запиту у вигляді списку рядків або None, якщо запит не повертає результат
++        :param query: SQL query as string
++        :return: Query results as a list of rows or None if the query does not return a result
+         """
+         if self.session:
+             try:
+                 result = self.session.execute(query)
+                 self.session.commit()
+-                print("Запит успішно виконано.")
+-                return result.fetchall()  # Повертає всі результати у вигляді списку рядків
++                logger.info("The request completed successfully.")
++                return result.fetchall()  # Returns all results as a list of strings
+             except Exception as e:
+-                print(f"Помилка під час виконання запиту: {e}")
++                logger.error(f"Error executing query: {e}")
+                 self.session.rollback()
+                 return None
+         else:
+-            print("Сесія не встановлена. Підключіться до бази даних перед виконанням запиту.")
++            logger.warning("Session not set. Connect to the database before running the query.")
+             return None
+ 
+     def insert_user(self, user_id, name, email, signup_date, domain):
+-        """Вставляє дані користувача у таблицю 'users'."""
++        """Inserts user data into the 'users' table."""
+         if self.session is not None:
+             try:
+                 query = text("""
+@@ -74,17 +96,17 @@
+                 })
+                 self.session.commit()
+             except Exception as e:
+-                print(f"Помилка під час вставки даних: {e}")
++                logger.error(f"Error inserting data: {e}")
+                 self.session.rollback()
+         else:
+-            print("Сесія не встановлена. Підключіться до бази даних перед вставкою даних.")
++            logger.warning("Session not set. Connect to the database before inserting data.")
+ 
+     def insert_all_users_from_dataframe(df, db):
+         """
+-        Вставляє всі дані з DataFrame у таблицю бази даних, використовуючи метод insert_user.
++        Inserts all data from the DataFrame into the database table using the insert_user method.
+ 
+-        :param df: DataFrame з даними
+-        :param db: Об'єкт класу PostgresDB, підключений до бази даних
++        :param df: DataFrame with data
++        :param db: PostgresDB class object connected to the database
+         """
+         try:
+             for index, row in df.iterrows():
+@@ -95,11 +117,12 @@
+                     signup_date=row['signup_date'],
+                     domain=row['domain']
+                 )
+-            print("Всі дані з DataFrame успішно додані до бази даних.")
++            logger.info("All data from the DataFrame was successfully added to the database.")
+         except Exception as e:
+-            print(f"Помилка під час додавання даних до бази даних: {e}")
++            logger.error(f"Error adding data to database: {e}")
+ 
+     def create_users_table(self):
++        """Creates a'Users' table in the database if it does not exist."""
+         create_table_query = text("""
+             CREATE TABLE IF NOT EXISTS users (
+                 user_id UUID PRIMARY KEY,
+@@ -113,9 +136,9 @@
+         self.session.commit()
+ 
+     def close(self):
+-        """Закриває підключення до бази даних."""
++        """Closes the database connection."""
+         if self.session:
+             self.session.close()
+         if self.engine:
+             self.engine.dispose()
+-        print("Підключення до бази даних закрито.")
+\ No newline at end of file
++        logger.info("Database connection closed.")
+\ No newline at end of file
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import data_processor_PANDAS\r\nimport DbContext\r\nimport queries\r\nfrom sqlalchemy import text\r\n\r\ndef print_hi(name):\r\n    input_path = 'csvFiles/generated_users.csv'\r\n    output_path = 'csvFiles/processed_users.csv'\r\n\r\n    df = data_processor_PANDAS.read_csv_file(input_path)\r\n    df = data_processor_PANDAS.process_data(df)\r\n    data_processor_PANDAS.save_to_csv(df, output_path)\r\n\r\n    # Ініціалізуємо об'єкт бази даних\r\n    db = DbContext.PostgresDB(dbname='ETL', user='postgres', password='123456789')\r\n    db.connect()\r\n\r\n    # Вказуємо шлях до CSV-файлу та назву таблиці в базі даних\r\n    #csv_file_path = 'csvFiles/processed_users.csv'\r\n    #table_name = 'users'\r\n\r\n    # Викликаємо функцію для додавання даних до бази даних\r\n    #data_processor_PANDAS.insert_csv_to_db(csv_file_path, table_name, db)\r\n    db.create_users_table()\r\n    DbContext.PostgresDB.insert_all_users_from_dataframe(df, db)\r\n    #data_processor_PANDAS.insert_dataframe_to_db_optimized(df, table_name, db)\r\n\r\n    print(\"викликаємо 1 запит: \")\r\n    print(db.execute_query(queries.query1))\r\n\r\n    print(\"викликаємо 2 запит: \")\r\n    print(db.execute_query(queries.query2))\r\n\r\n    print(\"викликаємо 3 запит: \")\r\n    print(db.execute_query(queries.query3))\r\n\r\n    print(\"викликаємо 4 запит: \")\r\n    print(db.execute_query(queries.query4))\r\n\r\n    print(\"викликаємо 5 запит: \")\r\n    print(db.execute_query(queries.query5))\r\n    print(\"тут виникає виняток, який обробляє і каже, що саме цей запит (delete) немає на виході даних тому перевіряєм, ось так:\")\r\n    print(\"отримуємо дані, після очищення всіх користувачів окрім тих, що мають певні домени\",db.execute_query(text(\"SELECT * FROM users\")))\r\n\r\n    # Закриваємо підключення до бази даних\r\n    db.close()\r\n\r\n\r\n\r\n# Press the green button in the gutter to run the script.\r\nif __name__ == '__main__':\r\n    print_hi('PyCharm')\r\n\r\n# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision b7a47eabd627d9fdc7bad8b4ffc93e39bdfa39d7)
++++ b/main.py	(date 1726661595482)
+@@ -1,54 +1,52 @@
++import logging
+ import data_processor_PANDAS
+-import DbContext
++import db_context
+ import queries
++
+ from sqlalchemy import text
+ 
+-def print_hi(name):
++# Configure logging
++logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
++logger = logging.getLogger(__name__)
++
++def main():
++    """
++    Main function to process data and interact with the database.
++    """
+     input_path = 'csvFiles/generated_users.csv'
+     output_path = 'csvFiles/processed_users.csv'
+ 
++    # Read and process data
+     df = data_processor_PANDAS.read_csv_file(input_path)
+     df = data_processor_PANDAS.process_data(df)
+     data_processor_PANDAS.save_to_csv(df, output_path)
+ 
+-    # Ініціалізуємо об'єкт бази даних
+-    db = DbContext.PostgresDB(dbname='ETL', user='postgres', password='123456789')
++    # Initialize the database object
++    db = db_context.PostgresDB(dbname='ETL', user='postgres', password='123456789')
+     db.connect()
+ 
+-    # Вказуємо шлях до CSV-файлу та назву таблиці в базі даних
+-    #csv_file_path = 'csvFiles/processed_users.csv'
+-    #table_name = 'users'
+-
+-    # Викликаємо функцію для додавання даних до бази даних
+-    #data_processor_PANDAS.insert_csv_to_db(csv_file_path, table_name, db)
+-    db.create_users_table()
+-    DbContext.PostgresDB.insert_all_users_from_dataframe(df, db)
+-    #data_processor_PANDAS.insert_dataframe_to_db_optimized(df, table_name, db)
++    # Create table
++    db_context.PostgresDB.create_users_table()
+ 
+-    print("викликаємо 1 запит: ")
+-    print(db.execute_query(queries.query1))
++    # Insert data into the database
++    db_context.PostgresDB.insert_all_users_from_dataframe(df, db)
+ 
+-    print("викликаємо 2 запит: ")
+-    print(db.execute_query(queries.query2))
++    # Execute queries
++    for i, query in enumerate([queries.query1, queries.query2, queries.query3, queries.query4, queries.query5], start=1):
++        logger.info(f"Executing query {i}:")
++        result = db.execute_query(query)
++        if result is not None:
++            logger.info(f"Result of query {i}: {result}")
++        else:
++            logger.info(f"No results returned for query {i}.")
+ 
+-    print("викликаємо 3 запит: ")
+-    print(db.execute_query(queries.query3))
++    logger.info("An exception may occur here because the delete query does not return data. To verify, do the following:")
++    logger.info("Retrieving data after deleting users except those with certain domains:")
++    remaining_users = db.execute_query(text("SELECT * FROM users"))
++    logger.info(f"Remaining users: {remaining_users}")
+ 
+-    print("викликаємо 4 запит: ")
+-    print(db.execute_query(queries.query4))
+-
+-    print("викликаємо 5 запит: ")
+-    print(db.execute_query(queries.query5))
+-    print("тут виникає виняток, який обробляє і каже, що саме цей запит (delete) немає на виході даних тому перевіряєм, ось так:")
+-    print("отримуємо дані, після очищення всіх користувачів окрім тих, що мають певні домени",db.execute_query(text("SELECT * FROM users")))
+-
+-    # Закриваємо підключення до бази даних
++    # Close the database connection
+     db.close()
+ 
+-
+-
+-# Press the green button in the gutter to run the script.
+ if __name__ == '__main__':
+-    print_hi('PyCharm')
+-
+-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+\ No newline at end of file
++    main()
+\ No newline at end of file
+Index: docker-compose.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>version: '3.8'\r\n\r\nservices:\r\n  postgres:\r\n    image: postgres:13\r\n    container_name: postgres_etl\r\n    environment:\r\n      POSTGRES_DB: ETL\r\n      POSTGRES_USER: postgres\r\n      POSTGRES_PASSWORD: 123456789\r\n    ports:\r\n      - \"5432:5432\"\r\n    volumes:\r\n      - postgres_data:/var/lib/postgresql/data\r\n    healthcheck:\r\n      test: [ \"CMD-SHELL\", \"pg_isready -U postgres\" ]\r\n      interval: 10s\r\n      timeout: 5s\r\n      retries: 5\r\n\r\n  etl:\r\n    build: .\r\n    container_name: etl_app\r\n    command: python main.py\r\n    environment:\r\n      DB_NAME: ETL\r\n      DB_USER: postgres\r\n      DB_PASSWORD: 123456789\r\n      DB_HOST: postgres\r\n      DB_PORT: 5432\r\n    depends_on:\r\n      postgres:\r\n        condition: service_healthy\r\n\r\nvolumes:\r\n  postgres_data:\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/docker-compose.yml b/docker-compose.yml
+--- a/docker-compose.yml	(revision b7a47eabd627d9fdc7bad8b4ffc93e39bdfa39d7)
++++ b/docker-compose.yml	(date 1726662113642)
+@@ -7,11 +7,13 @@
+     environment:
+       POSTGRES_DB: ETL
+       POSTGRES_USER: postgres
+-      POSTGRES_PASSWORD: 123456789
++      POSTGRES_PASSWORD: /run/secrets/db_password_new
+     ports:
+       - "5432:5432"
+     volumes:
+       - postgres_data:/var/lib/postgresql/data
++    secrets:
++      - db_password_new
+     healthcheck:
+       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+       interval: 10s
+@@ -25,12 +27,17 @@
+     environment:
+       DB_NAME: ETL
+       DB_USER: postgres
+-      DB_PASSWORD: 123456789
++      DB_PASSWORD: /run/secrets/db_password_new
+       DB_HOST: postgres
+       DB_PORT: 5432
+     depends_on:
+-      postgres:
+-        condition: service_healthy
++      - postgres
++    secrets:
++      - db_password_new
++
++secrets:
++  db_password_new:
++    external: true
+ 
+ volumes:
+   postgres_data:
+Index: data_processor_PANDAS.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import pandas as pd\r\nimport re\r\nfrom email_validator import validate_email, EmailNotValidError\r\n\r\n\r\ndef read_csv_file(file_path):\r\n    # Читання даних з CSV-файлу\r\n    df = pd.read_csv(file_path, delimiter=';')\r\n\r\n    return df\r\n\r\ndef format_signup_date(df):\r\n    \"\"\"\r\n    Переводить поле signup_date у стандартний формат (YYYY-MM-DD).\r\n\r\n    :param df: DataFrame з даними\r\n    :return: DataFrame з відформатованою датою\r\n    \"\"\"\r\n    df['signup_date'] = pd.to_datetime(df['signup_date'], format='%d.%m.%Y %H:%M', dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')\r\n    return df\r\n\r\ndef filter_invalid_emails(df):\r\n    \"\"\"\r\n    Відфільтровує записи, де поле email не містить дійсної email-адреси.\r\n\r\n    :param df: DataFrame з даними\r\n    :return: DataFrame з дійсними email-адресами\r\n    \"\"\"\r\n    email_pattern = r'^[\\w\\.-]+@[\\w\\.-]+\\.\\w+$'\r\n    df = df[df['email'].apply(lambda x: re.match(email_pattern, x) is not None)]\r\n    return df\r\n\r\n\r\ndef filter_invalid_emails_validator(df):\r\n    \"\"\"\r\n    Відфільтровує записи, де поле email не містить дійсної email-адреси, використовуючи бібліотеку email-validator.\r\n\r\n    :param df: DataFrame з даними\r\n    :return: DataFrame з дійсними email-адресами\r\n    \"\"\"\r\n\r\n    def is_valid_email(email):\r\n        try:\r\n            validate_email(email, check_deliverability=False)\r\n            return True\r\n        except EmailNotValidError:\r\n            return False\r\n\r\n    df = df[df['email'].apply(is_valid_email)]\r\n    return df\r\n\r\ndef add_email_domain(df):\r\n    \"\"\"\r\n    Додає нову колонку domain, яка містить доменне ім’я з email-адреси.\r\n\r\n    :param df: DataFrame з даними\r\n    :return: DataFrame з доданою колонкою domain\r\n    \"\"\"\r\n    df = df.copy()\r\n    df.loc[:, 'domain'] = df['email'].apply(lambda x: x.split('@')[1])\r\n    return df\r\n\r\ndef process_data(df):\r\n    # Переведення поля signup_date у формат YYYY-MM-DD\r\n    df = format_signup_date(df)\r\n\r\n    # Фільтрація недійсних email-адрес\r\n    df = filter_invalid_emails_validator(df)\r\n\r\n    # Додавання колонки domain\r\n    df = add_email_domain(df)\r\n\r\n    # Повертаємо оброблений DataFrame\r\n    return df\r\n\r\ndef save_to_csv(df, output_file_path):\r\n    \"\"\"\r\n    Зберігає оброблені дані у новий CSV-файл.\r\n\r\n    :param df: DataFrame з обробленими даними\r\n    :param output_file_path: Шлях до вихідного CSV-файлу\r\n    \"\"\"\r\n    df.to_csv(output_file_path, index=False, sep=';', quoting=1)\r\n    print(f\"Файл успішно збережено за адресою: {output_file_path}\")\r\n\r\n\r\ndef insert_csv_to_db(csv_file_path, table_name, db):\r\n    \"\"\"\r\n    Зчитує дані з CSV-файлу і додає їх до таблиці в базі даних PostgreSQL.\r\n\r\n    :param csv_file_path: Шлях до CSV-файлу\r\n    :param table_name: Назва таблиці в базі даних\r\n    :param db: Об'єкт класу PostgresDB, який підключений до бази даних\r\n    \"\"\"\r\n    try:\r\n        # Зчитуємо дані з CSV-файлу в DataFrame\r\n        df = pd.read_csv(csv_file_path, sep=';')\r\n\r\n        # Додаємо дані до таблиці в базі даних\r\n        df.to_sql(table_name, db.engine, if_exists='append', index=False)\r\n\r\n        print(f\"Дані успішно додані до таблиці '{table_name}' в базі даних.\")\r\n    except Exception as e:\r\n        print(f\"Помилка під час додавання даних до бази даних: {e}\")\r\n\r\n\r\n\r\n\r\n\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/data_processor_PANDAS.py b/data_processor_PANDAS.py
+--- a/data_processor_PANDAS.py	(revision b7a47eabd627d9fdc7bad8b4ffc93e39bdfa39d7)
++++ b/data_processor_PANDAS.py	(date 1726654062230)
+@@ -1,30 +1,41 @@
+-import pandas as pd
++import logging
+ import re
++
++import pandas as pd
+ from email_validator import validate_email, EmailNotValidError
+ 
++# Logging Configuration
++logging.basicConfig(
++    level=logging.INFO,
++    format='%(asctime)s - %(levelname)s - %(message)s'
++)
+ 
+ def read_csv_file(file_path):
+-    # Читання даних з CSV-файлу
++    """Reading data from a CSV file"""
+     df = pd.read_csv(file_path, delimiter=';')
+-
+     return df
+ 
+ def format_signup_date(df):
+     """
+-    Переводить поле signup_date у стандартний формат (YYYY-MM-DD).
++    Converts the signup_date field to the standard format (YYYY-MM-DD).
+ 
+-    :param df: DataFrame з даними
+-    :return: DataFrame з відформатованою датою
++    :param df: DataFrame with data
++    :return: DataFrame with formatted date
+     """
+-    df['signup_date'] = pd.to_datetime(df['signup_date'], format='%d.%m.%Y %H:%M', dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
++    df['signup_date'] = pd.to_datetime(
++        df['signup_date'],
++        format='%d.%m.%Y %H:%M',
++        dayfirst=True,
++        errors='coerce'
++    ).dt.strftime('%Y-%m-%d')
+     return df
+ 
+ def filter_invalid_emails(df):
+     """
+-    Відфільтровує записи, де поле email не містить дійсної email-адреси.
++    Filters records where the email field does not contain a valid email address.
+ 
+-    :param df: DataFrame з даними
+-    :return: DataFrame з дійсними email-адресами
++    :param df: DataFrame with data
++    :return: DataFrame with valid email addresses
+     """
+     email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+     df = df[df['email'].apply(lambda x: re.match(email_pattern, x) is not None)]
+@@ -33,75 +44,79 @@
+ 
+ def filter_invalid_emails_validator(df):
+     """
+-    Відфільтровує записи, де поле email не містить дійсної email-адреси, використовуючи бібліотеку email-validator.
++    Filters records where the email field does not contain a valid email address using the email-validator library.
+ 
+-    :param df: DataFrame з даними
+-    :return: DataFrame з дійсними email-адресами
++    :param df: DataFrame with data
++    :return: DataFrame with valid email addresses
+     """
+-
+     def is_valid_email(email):
+         try:
+             validate_email(email, check_deliverability=False)
+             return True
+         except EmailNotValidError:
+             return False
+-
+     df = df[df['email'].apply(is_valid_email)]
+     return df
+ 
+ def add_email_domain(df):
+     """
+-    Додає нову колонку domain, яка містить доменне ім’я з email-адреси.
++    Adds a new domain column that contains the domain name from the email address.
+ 
+-    :param df: DataFrame з даними
+-    :return: DataFrame з доданою колонкою domain
++    :param df: DataFrame with data
++    :return: DataFrame with added domain column
+     """
+     df = df.copy()
+     df.loc[:, 'domain'] = df['email'].apply(lambda x: x.split('@')[1])
+     return df
+ 
+ def process_data(df):
+-    # Переведення поля signup_date у формат YYYY-MM-DD
++    """
++        Processes data: date formatting, filtering invalid emails, adding a domain.
++
++        :param df: DataFrame with data
++        :return: Processed DataFrame
++        """
++    # Converting the signup_date field to YYYY-MM-DD format
+     df = format_signup_date(df)
+ 
+-    # Фільтрація недійсних email-адрес
++    # Filtering invalid email addresses
+     df = filter_invalid_emails_validator(df)
+ 
+-    # Додавання колонки domain
++    # Add a domain column
+     df = add_email_domain(df)
+ 
+-    # Повертаємо оброблений DataFrame
++    # Return the processed DataFrame
+     return df
+ 
+ def save_to_csv(df, output_file_path):
+     """
+-    Зберігає оброблені дані у новий CSV-файл.
++    Saves the processed data to a new CSV file.
+ 
+-    :param df: DataFrame з обробленими даними
+-    :param output_file_path: Шлях до вихідного CSV-файлу
++    :param df: DataFrame with processed data
++    :param output_file_path: Source CSV file path
+     """
+     df.to_csv(output_file_path, index=False, sep=';', quoting=1)
+-    print(f"Файл успішно збережено за адресою: {output_file_path}")
++    logging.info(f"The file was successfully saved to: {output_file_path}")
+ 
+ 
+ def insert_csv_to_db(csv_file_path, table_name, db):
+     """
+-    Зчитує дані з CSV-файлу і додає їх до таблиці в базі даних PostgreSQL.
++    Reads data from a CSV file and adds it to a table in the PostgreSQL database.
+ 
+-    :param csv_file_path: Шлях до CSV-файлу
+-    :param table_name: Назва таблиці в базі даних
+-    :param db: Об'єкт класу PostgresDB, який підключений до бази даних
++    :param csv_file_path: CSV file path
++    :param table_name: Table name in database
++    :param db: PostgresDB class object that is connected to the database
+     """
+     try:
+-        # Зчитуємо дані з CSV-файлу в DataFrame
++        # Read data from CSV file in DataFrame
+         df = pd.read_csv(csv_file_path, sep=';')
+ 
+-        # Додаємо дані до таблиці в базі даних
++        # Add data to the table in the database
+         df.to_sql(table_name, db.engine, if_exists='append', index=False)
+ 
+-        print(f"Дані успішно додані до таблиці '{table_name}' в базі даних.")
++        logging.info(f"Data was successfully added to the '{table_name}' table in the database.")
+     except Exception as e:
+-        print(f"Помилка під час додавання даних до бази даних: {e}")
++        logging.error(f"Error adding data to database: {e}")
+ 
+ 
+ 
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"2a8104d8-c9fe-458d-8771-98ce045d1aa3\" name=\"Changes\" comment=\"all worked\">\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/DbContext.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/DbContext.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/data_processor_PANDAS.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/data_processor_PANDAS.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/docker-compose.yml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/docker-compose.yml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/dockerfile\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/dockerfile\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/main.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/main.py\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/queries.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/queries.py\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"FileTemplateManagerImpl\">\r\n    <option name=\"RECENT_TEMPLATES\">\r\n      <list>\r\n        <option value=\"Python Script\" />\r\n      </list>\r\n    </option>\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"GitHubPullRequestSearchHistory\">{\r\n  &quot;lastFilter&quot;: {\r\n    &quot;state&quot;: &quot;OPEN&quot;,\r\n    &quot;assignee&quot;: &quot;svyatoslavBokalo&quot;\r\n  }\r\n}</component>\r\n  <component name=\"GithubPullRequestsUISettings\">{\r\n  &quot;selectedUrlAndAccountId&quot;: {\r\n    &quot;url&quot;: &quot;https://github.com/svyatoslavBokalo/CSV-to-PostgreSQL-ETL-Docker.git&quot;,\r\n    &quot;accountId&quot;: &quot;f1f7739d-ac78-46c3-8b4c-63e83c39927d&quot;\r\n  }\r\n}</component>\r\n  <component name=\"MarkdownSettingsMigration\">\r\n    <option name=\"stateVersion\" value=\"1\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\">{\r\n  &quot;associatedIndex&quot;: 3\r\n}</component>\r\n  <component name=\"ProjectId\" id=\"2lN4SRnwyWb0uRQbDZH0MP6CJEb\" />\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\"><![CDATA[{\r\n  \"keyToString\": {\r\n    \"Python.Data_processor_PySpark.executor\": \"Run\",\r\n    \"Python.data_processor_PANDAS.executor\": \"Debug\",\r\n    \"Python.main.executor\": \"Run\",\r\n    \"Python.protocol.executor\": \"Run\",\r\n    \"RunOnceActivity.OpenProjectViewOnStart\": \"true\",\r\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\r\n    \"git-widget-placeholder\": \"main\",\r\n    \"last_opened_file_path\": \"C:/Users/PC/source/MyGit/CSV-to-PostgreSQL-ETL-Docker\",\r\n    \"settings.editor.selected.configurable\": \"com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable\"\r\n  }\r\n}]]></component>\r\n  <component name=\"SharedIndexes\">\r\n    <attachedChunks>\r\n      <set>\r\n        <option value=\"bundled-python-sdk-98f27166c754-ba05f1cad1b1-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-242.21829.153\" />\r\n      </set>\r\n    </attachedChunks>\r\n  </component>\r\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"2a8104d8-c9fe-458d-8771-98ce045d1aa3\" name=\"Changes\" comment=\"\" />\r\n      <created>1725007199606</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1725007199606</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00001\" summary=\"do task 4(queries) and task 3(with db)\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1725053955200</created>\r\n      <option name=\"number\" value=\"00001\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1725053955200</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00002\" summary=\"some change in main\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1725054081308</created>\r\n      <option name=\"number\" value=\"00002\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1725054081308</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00003\" summary=\"all worked\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1725062739212</created>\r\n      <option name=\"number\" value=\"00003\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00003\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1725062739212</updated>\r\n    </task>\r\n    <option name=\"localTasksCounter\" value=\"4\" />\r\n    <servers />\r\n  </component>\r\n  <component name=\"Vcs.Log.Tabs.Properties\">\r\n    <option name=\"OPEN_GENERIC_TABS\">\r\n      <map>\r\n        <entry key=\"88ec3506-9d84-4784-b803-b47324d5bc7b\" value=\"TOOL_WINDOW\" />\r\n      </map>\r\n    </option>\r\n    <option name=\"RECENT_FILTERS\">\r\n      <map>\r\n        <entry key=\"Branch\">\r\n          <value>\r\n            <list>\r\n              <RecentGroup>\r\n                <option name=\"FILTER_VALUES\">\r\n                  <option value=\"main\" />\r\n                </option>\r\n              </RecentGroup>\r\n              <RecentGroup>\r\n                <option name=\"FILTER_VALUES\">\r\n                  <option value=\"origin/main\" />\r\n                </option>\r\n              </RecentGroup>\r\n            </list>\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n    <option name=\"TAB_STATES\">\r\n      <map>\r\n        <entry key=\"88ec3506-9d84-4784-b803-b47324d5bc7b\">\r\n          <value>\r\n            <State>\r\n              <option name=\"FILTERS\">\r\n                <map>\r\n                  <entry key=\"branch\">\r\n                    <value>\r\n                      <list>\r\n                        <option value=\"HEAD\" />\r\n                      </list>\r\n                    </value>\r\n                  </entry>\r\n                  <entry key=\"roots\">\r\n                    <value>\r\n                      <list>\r\n                        <option value=\"$PROJECT_DIR$\" />\r\n                      </list>\r\n                    </value>\r\n                  </entry>\r\n                </map>\r\n              </option>\r\n              <option name=\"SHOW_ONLY_AFFECTED_CHANGES\" value=\"true\" />\r\n            </State>\r\n          </value>\r\n        </entry>\r\n        <entry key=\"MAIN\">\r\n          <value>\r\n            <State>\r\n              <option name=\"FILTERS\">\r\n                <map>\r\n                  <entry key=\"branch\">\r\n                    <value>\r\n                      <list>\r\n                        <option value=\"main\" />\r\n                      </list>\r\n                    </value>\r\n                  </entry>\r\n                </map>\r\n              </option>\r\n            </State>\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n  </component>\r\n  <component name=\"VcsManagerConfiguration\">\r\n    <MESSAGE value=\"do task 4(queries) and task 3(with db)\" />\r\n    <MESSAGE value=\"some change\" />\r\n    <MESSAGE value=\"some change in main\" />\r\n    <MESSAGE value=\"all worked\" />\r\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"all worked\" />\r\n  </component>\r\n  <component name=\"XDebuggerManager\">\r\n    <breakpoint-manager>\r\n      <breakpoints>\r\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\r\n          <url>file://$PROJECT_DIR$/data_processor_PANDAS.py</url>\r\n          <line>101</line>\r\n          <option name=\"timeStamp\" value=\"15\" />\r\n        </line-breakpoint>\r\n      </breakpoints>\r\n    </breakpoint-manager>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision b7a47eabd627d9fdc7bad8b4ffc93e39bdfa39d7)
++++ b/.idea/workspace.xml	(date 1726661697291)
+@@ -4,14 +4,12 @@
+     <option name="autoReloadType" value="SELECTIVE" />
+   </component>
+   <component name="ChangeListManager">
+-    <list default="true" id="2a8104d8-c9fe-458d-8771-98ce045d1aa3" name="Changes" comment="all worked">
++    <list default="true" id="2a8104d8-c9fe-458d-8771-98ce045d1aa3" name="Changes" comment="some change, add txt file">
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/DbContext.py" beforeDir="false" afterPath="$PROJECT_DIR$/DbContext.py" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/DbContext.py" beforeDir="false" afterPath="$PROJECT_DIR$/db_context.py" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/data_processor_PANDAS.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_processor_PANDAS.py" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/dockerfile" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/queries.py" beforeDir="false" afterPath="$PROJECT_DIR$/queries.py" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -55,7 +53,7 @@
+   "keyToString": {
+     "Python.Data_processor_PySpark.executor": "Run",
+     "Python.data_processor_PANDAS.executor": "Debug",
+-    "Python.main.executor": "Run",
++    "Python.main.executor": "Debug",
+     "Python.protocol.executor": "Run",
+     "RunOnceActivity.OpenProjectViewOnStart": "true",
+     "RunOnceActivity.ShowReadmeOnStart": "true",
+@@ -104,7 +102,23 @@
+       <option name="project" value="LOCAL" />
+       <updated>1725062739212</updated>
+     </task>
+-    <option name="localTasksCounter" value="4" />
++    <task id="LOCAL-00004" summary="add docker">
++      <option name="closed" value="true" />
++      <created>1725089832841</created>
++      <option name="number" value="00004" />
++      <option name="presentableId" value="LOCAL-00004" />
++      <option name="project" value="LOCAL" />
++      <updated>1725089832841</updated>
++    </task>
++    <task id="LOCAL-00005" summary="some change, add txt file">
++      <option name="closed" value="true" />
++      <created>1725090127145</created>
++      <option name="number" value="00005" />
++      <option name="presentableId" value="LOCAL-00005" />
++      <option name="project" value="LOCAL" />
++      <updated>1725090127145</updated>
++    </task>
++    <option name="localTasksCounter" value="6" />
+     <servers />
+   </component>
+   <component name="Vcs.Log.Tabs.Properties">
+@@ -185,15 +199,17 @@
+     <MESSAGE value="some change" />
+     <MESSAGE value="some change in main" />
+     <MESSAGE value="all worked" />
+-    <option name="LAST_COMMIT_MESSAGE" value="all worked" />
++    <MESSAGE value="add docker" />
++    <MESSAGE value="some change, add txt file" />
++    <option name="LAST_COMMIT_MESSAGE" value="some change, add txt file" />
+   </component>
+   <component name="XDebuggerManager">
+     <breakpoint-manager>
+       <breakpoints>
+         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+-          <url>file://$PROJECT_DIR$/data_processor_PANDAS.py</url>
+-          <line>101</line>
+-          <option name="timeStamp" value="15" />
++          <url>file://$PROJECT_DIR$/main.py</url>
++          <line>31</line>
++          <option name="timeStamp" value="17" />
+         </line-breakpoint>
+       </breakpoints>
+     </breakpoint-manager>

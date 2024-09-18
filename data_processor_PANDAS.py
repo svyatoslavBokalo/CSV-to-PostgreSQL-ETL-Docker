@@ -1,30 +1,41 @@
-import pandas as pd
+import logging
 import re
+
+import pandas as pd
 from email_validator import validate_email, EmailNotValidError
 
+# Logging Configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def read_csv_file(file_path):
-    # Читання даних з CSV-файлу
+    """Reading data from a CSV file"""
     df = pd.read_csv(file_path, delimiter=';')
-
     return df
 
 def format_signup_date(df):
     """
-    Переводить поле signup_date у стандартний формат (YYYY-MM-DD).
+    Converts the signup_date field to the standard format (YYYY-MM-DD).
 
-    :param df: DataFrame з даними
-    :return: DataFrame з відформатованою датою
+    :param df: DataFrame with data
+    :return: DataFrame with formatted date
     """
-    df['signup_date'] = pd.to_datetime(df['signup_date'], format='%d.%m.%Y %H:%M', dayfirst=True, errors='coerce').dt.strftime('%Y-%m-%d')
+    df['signup_date'] = pd.to_datetime(
+        df['signup_date'],
+        format='%d.%m.%Y %H:%M',
+        dayfirst=True,
+        errors='coerce'
+    ).dt.strftime('%Y-%m-%d')
     return df
 
 def filter_invalid_emails(df):
     """
-    Відфільтровує записи, де поле email не містить дійсної email-адреси.
+    Filters records where the email field does not contain a valid email address.
 
-    :param df: DataFrame з даними
-    :return: DataFrame з дійсними email-адресами
+    :param df: DataFrame with data
+    :return: DataFrame with valid email addresses
     """
     email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
     df = df[df['email'].apply(lambda x: re.match(email_pattern, x) is not None)]
@@ -33,75 +44,79 @@ def filter_invalid_emails(df):
 
 def filter_invalid_emails_validator(df):
     """
-    Відфільтровує записи, де поле email не містить дійсної email-адреси, використовуючи бібліотеку email-validator.
+    Filters records where the email field does not contain a valid email address using the email-validator library.
 
-    :param df: DataFrame з даними
-    :return: DataFrame з дійсними email-адресами
+    :param df: DataFrame with data
+    :return: DataFrame with valid email addresses
     """
-
     def is_valid_email(email):
         try:
             validate_email(email, check_deliverability=False)
             return True
         except EmailNotValidError:
             return False
-
     df = df[df['email'].apply(is_valid_email)]
     return df
 
 def add_email_domain(df):
     """
-    Додає нову колонку domain, яка містить доменне ім’я з email-адреси.
+    Adds a new domain column that contains the domain name from the email address.
 
-    :param df: DataFrame з даними
-    :return: DataFrame з доданою колонкою domain
+    :param df: DataFrame with data
+    :return: DataFrame with added domain column
     """
     df = df.copy()
     df.loc[:, 'domain'] = df['email'].apply(lambda x: x.split('@')[1])
     return df
 
 def process_data(df):
-    # Переведення поля signup_date у формат YYYY-MM-DD
+    """
+        Processes data: date formatting, filtering invalid emails, adding a domain.
+
+        :param df: DataFrame with data
+        :return: Processed DataFrame
+        """
+    # Converting the signup_date field to YYYY-MM-DD format
     df = format_signup_date(df)
 
-    # Фільтрація недійсних email-адрес
+    # Filtering invalid email addresses
     df = filter_invalid_emails_validator(df)
 
-    # Додавання колонки domain
+    # Add a domain column
     df = add_email_domain(df)
 
-    # Повертаємо оброблений DataFrame
+    # Return the processed DataFrame
     return df
 
 def save_to_csv(df, output_file_path):
     """
-    Зберігає оброблені дані у новий CSV-файл.
+    Saves the processed data to a new CSV file.
 
-    :param df: DataFrame з обробленими даними
-    :param output_file_path: Шлях до вихідного CSV-файлу
+    :param df: DataFrame with processed data
+    :param output_file_path: Source CSV file path
     """
     df.to_csv(output_file_path, index=False, sep=';', quoting=1)
-    print(f"Файл успішно збережено за адресою: {output_file_path}")
+    logging.info(f"The file was successfully saved to: {output_file_path}")
 
 
 def insert_csv_to_db(csv_file_path, table_name, db):
     """
-    Зчитує дані з CSV-файлу і додає їх до таблиці в базі даних PostgreSQL.
+    Reads data from a CSV file and adds it to a table in the PostgreSQL database.
 
-    :param csv_file_path: Шлях до CSV-файлу
-    :param table_name: Назва таблиці в базі даних
-    :param db: Об'єкт класу PostgresDB, який підключений до бази даних
+    :param csv_file_path: CSV file path
+    :param table_name: Table name in database
+    :param db: PostgresDB class object that is connected to the database
     """
     try:
-        # Зчитуємо дані з CSV-файлу в DataFrame
+        # Read data from CSV file in DataFrame
         df = pd.read_csv(csv_file_path, sep=';')
 
-        # Додаємо дані до таблиці в базі даних
+        # Add data to the table in the database
         df.to_sql(table_name, db.engine, if_exists='append', index=False)
 
-        print(f"Дані успішно додані до таблиці '{table_name}' в базі даних.")
+        logging.info(f"Data was successfully added to the '{table_name}' table in the database.")
     except Exception as e:
-        print(f"Помилка під час додавання даних до бази даних: {e}")
+        logging.error(f"Error adding data to database: {e}")
 
 
 

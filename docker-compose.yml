@@ -7,11 +7,13 @@ services:
     environment:
       POSTGRES_DB: ETL
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456789
+      POSTGRES_PASSWORD: /run/secrets/db_password_new
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    secrets:
+      - db_password_new
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -25,12 +27,17 @@ services:
     environment:
       DB_NAME: ETL
       DB_USER: postgres
-      DB_PASSWORD: 123456789
+      DB_PASSWORD: /run/secrets/db_password_new
       DB_HOST: postgres
       DB_PORT: 5432
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
+    secrets:
+      - db_password_new
+
+secrets:
+  db_password_new:
+    external: true
 
 volumes:
   postgres_data:
