@@ -26,13 +26,13 @@ def main():
     db.connect()
 
     # Create table
-    db_context.PostgresDB.create_users_table()
+    db.create_users_table()
 
     # Insert data into the database
-    db_context.PostgresDB.insert_all_users_from_dataframe(df, db)
+    db.insert_all_users_from_dataframe(df)
 
     # Execute queries
-    for i, query in enumerate([queries.query1, queries.query2, queries.query3, queries.query4, queries.query5], start=1):
+    for i, query in enumerate([queries.query1, queries.query2, queries.query3, queries.query4], start=1):
         logger.info(f"Executing query {i}:")
         result = db.execute_query(query)
         if result is not None:

@@ -101,7 +101,7 @@ class PostgresDB:
         else:
             logger.warning("Session not set. Connect to the database before inserting data.")
 
-    def insert_all_users_from_dataframe(df, db):
+    def insert_all_users_from_dataframe(self, df):
         """
         Inserts all data from the DataFrame into the database table using the insert_user method.
 
@@ -110,7 +110,7 @@ class PostgresDB:
         """
         try:
             for index, row in df.iterrows():
-                db.insert_user(
+                self.insert_user(
                     user_id=row['user_id'],
                     name=row['name'],
                     email=row['email'],
